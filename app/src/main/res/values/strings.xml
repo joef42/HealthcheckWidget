@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Healthcheck Widget</string>
+    <string name="widget_description">Shows the status of your healthchecks.io checks</string>
+    <string name="config_title">Healthchecks.io Setup</string>
+    <string name="config_hint">Enter your read-only API key from\nhealthchecks.io → Settings → API Access</string>
+    <string name="api_key_hint">API key</string>
+    <string name="save">Save &amp; Show Widget</string>
+    <string name="error_empty_key">Please enter an API key</string>
+</resources>

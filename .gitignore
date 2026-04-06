@@ -1,0 +1,9 @@
+# Build output
+build/
+app/build/
+
+# Gradle cache/wrapper state (keep wrapper scripts and jar, ignore caches)
+.gradle/
+
+# Local Android SDK config (machine-specific)
+local.properties
