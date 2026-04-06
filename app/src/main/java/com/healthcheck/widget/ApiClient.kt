@@ -35,10 +35,13 @@ object ApiClient {
 
             val checks = JSONObject(body).getJSONArray("checks")
             var ok = 0
-            val total = checks.length()
+            var total = 0
 
-            for (i in 0 until total) {
+            for (i in 0 until checks.length()) {
                 val status = checks.getJSONObject(i).optString("status", "")
+                // Skip disabled/not-executed checks — they don't count toward status
+                if (status == "paused" || status == "new") continue
+                total++
                 if (status == "up") ok++
             }
 

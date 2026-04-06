@@ -19,6 +19,7 @@ android {
         debug {
             debuggable true
             applicationIdSuffix ".debug"
+            archivesBaseName = "healthcheckwidget"
         }
         release {
             minifyEnabled true

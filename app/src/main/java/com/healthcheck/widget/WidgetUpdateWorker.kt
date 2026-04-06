@@ -7,6 +7,11 @@ import android.graphics.Color
 import android.widget.RemoteViews
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import android.text.SpannableString
+import android.text.style.RelativeSizeSpan
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class WidgetUpdateWorker(
     private val context: Context,
@@ -52,6 +57,7 @@ class WidgetUpdateWorker(
                     // Prompt user to configure
                     views.setInt(R.id.widget_root, "setBackgroundColor", Color.parseColor("#607D8B"))
                     views.setTextViewText(R.id.status_text, "TAP\nSETUP")
+                    views.setTextViewText(R.id.timestamp_text, "")
                     val configIntent = android.content.Intent(context, WidgetConfigActivity::class.java).apply {
                         putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
                         flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
@@ -67,19 +73,32 @@ class WidgetUpdateWorker(
                     // Network/parse error
                     views.setInt(R.id.widget_root, "setBackgroundColor", Color.parseColor("#FF9800"))
                     views.setTextViewText(R.id.status_text, "ERR")
+                    views.setTextViewText(R.id.timestamp_text, currentTime())
                     setRefreshClickListener(context, widgetId, views)
                 }
 
                 else -> {
                     val bg = if (status.allOk) Color.parseColor("#388E3C") else Color.parseColor("#D32F2F")
                     views.setInt(R.id.widget_root, "setBackgroundColor", bg)
-                    views.setTextViewText(R.id.status_text, "${status.ok}/${status.total}")
+                    views.setTextViewText(R.id.status_text, statusSpan(status))
+                    views.setTextViewText(R.id.timestamp_text, currentTime())
                     setRefreshClickListener(context, widgetId, views)
                 }
             }
 
             appWidgetManager.updateAppWidget(widgetId, views)
         }
+
+        private fun statusSpan(status: ChecksStatus): CharSequence {
+            val text = "${status.ok}/${status.total}"
+            val span = SpannableString(text)
+            // Make the ok count ~50% larger than the base text size
+            span.setSpan(RelativeSizeSpan(1.5f), 0, status.ok.toString().length, 0)
+            return span
+        }
+
+        private fun currentTime(): String =
+            SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
         private fun setRefreshClickListener(context: Context, widgetId: Int, views: RemoteViews) {
             val refreshIntent = android.content.Intent(context, HealthcheckWidgetProvider::class.java).apply {
