@@ -28,7 +28,20 @@ class WidgetUpdateWorker(
         )
         if (ids.isEmpty()) return Result.success()
 
-        val status = if (apiKey.isNotEmpty()) ApiClient.fetchStatus(apiKey) else null
+        val status: ChecksStatus? = if (apiKey.isNotEmpty()) {
+            var result = ApiClient.fetchStatus(apiKey)
+            if (result == null) {
+                // Retry up to ~60s before showing ERR (handles transient network unavailability
+                // e.g. right after screen unlock): 5s + 10s + 15s + 30s = 60s total
+                val retryDelays = longArrayOf(5_000, 10_000, 15_000, 30_000)
+                for (delay in retryDelays) {
+                    Thread.sleep(delay)
+                    result = ApiClient.fetchStatus(apiKey)
+                    if (result != null) break
+                }
+            }
+            result
+        } else null
 
         for (id in ids) {
             applyViews(context, appWidgetManager, id, apiKey, status)
@@ -78,8 +91,10 @@ class WidgetUpdateWorker(
                 }
 
                 else -> {
-                    val bg = if (status.allOk) Color.parseColor("#388E3C") else Color.parseColor("#D32F2F")
+                    val isOk = status.allOk
+                    val bg = if (isOk) Color.parseColor("#1E1E1E") else Color.parseColor("#D32F2F")
                     views.setInt(R.id.widget_root, "setBackgroundColor", bg)
+                    views.setTextColor(R.id.status_text, if (isOk) Color.parseColor("#388E3C") else Color.WHITE)
                     views.setTextViewText(R.id.status_text, statusSpan(status))
                     views.setTextViewText(R.id.timestamp_text, currentTime())
                     setRefreshClickListener(context, widgetId, views)

@@ -40,7 +40,7 @@ object ApiClient {
             for (i in 0 until checks.length()) {
                 val status = checks.getJSONObject(i).optString("status", "")
                 // Skip disabled/not-executed checks — they don't count toward status
-                if (status == "paused" || status == "new") continue
+                if (status == "paused" || status == "new" || status == "grace") continue
                 total++
                 if (status == "up") ok++
             }
