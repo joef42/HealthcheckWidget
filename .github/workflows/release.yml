@@ -1,0 +1,73 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    env:
+      # Change this if your keystore uses a different alias
+      SIGNING_KEY_ALIAS: release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate version tag
+        id: version
+        run: |
+          COUNT=$(git rev-list --count --since="$(date +%Y-%m-01)" HEAD)
+          TAG="v$(date +%y.%m).$(printf '%02d' ${COUNT})"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "apk=healthcheckwidget-${TAG}.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.SIGNING_KEYSTORE_JKS_BASE64 }}" | base64 -d > "${{ github.workspace }}/release.jks"
+
+      - name: Build release APK
+        env:
+          SIGNING_STORE_PATH: ${{ github.workspace }}/release.jks
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease \
+            -PversionName=${{ steps.version.outputs.tag }}
+
+      - name: Rename APK
+        run: |
+          mv app/build/outputs/apk/release/healthcheckwidget-release.apk \
+             app/build/outputs/apk/release/${{ steps.version.outputs.apk }}
+
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GNUPG_SIGNING_KEY_BASE64 }}" | base64 -d | gpg --batch --import
+
+      - name: Sign APK with GPG
+        run: |
+          gpg --batch --yes --detach-sign --armor \
+            app/build/outputs/apk/release/${{ steps.version.outputs.apk }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "Release ${{ steps.version.outputs.tag }}" \
+            --generate-notes \
+            "app/build/outputs/apk/release/${{ steps.version.outputs.apk }}" \
+            "app/build/outputs/apk/release/${{ steps.version.outputs.apk }}.asc"

@@ -12,7 +12,17 @@ android {
         minSdk 23
         targetSdk 34
         versionCode 1
-        versionName "1.0"
+        versionName project.findProperty("versionName") ?: "dev"
+    }
+
+    signingConfigs {
+        release {
+            def storePath = System.getenv("SIGNING_STORE_PATH")
+            storeFile storePath ? file(storePath) : null
+            storePassword System.getenv("SIGNING_PASSWORD") ?: ""
+            keyAlias System.getenv("SIGNING_KEY_ALIAS") ?: "release"
+            keyPassword System.getenv("SIGNING_PASSWORD") ?: ""
+        }
     }
 
     buildTypes {
@@ -22,8 +32,10 @@ android {
             archivesBaseName = "healthcheckwidget"
         }
         release {
+            signingConfig signingConfigs.release
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            archivesBaseName = "healthcheckwidget"
         }
     }
 
