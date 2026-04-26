@@ -10,7 +10,7 @@ data class ChecksStatus(val ok: Int, val total: Int) {
 
 object ApiClient {
 
-    private const val API_URL = "https://healthchecks.io/api/v1/checks/"
+    private const val API_URL = "https://healthchecks.io/api/v3/checks/"
     private const val TIMEOUT_MS = 15_000
 
     /**
@@ -39,10 +39,10 @@ object ApiClient {
 
             for (i in 0 until checks.length()) {
                 val status = checks.getJSONObject(i).optString("status", "")
-                // Skip disabled/not-executed checks — they don't count toward status
-                if (status == "paused" || status == "new" || status == "grace") continue
+                // Skip checks that haven't run yet or are paused — they don't count toward status
+                if (status == "paused" || status == "new") continue
                 total++
-                if (status == "up") ok++
+                if (status == "up" || status == "grace") ok++
             }
 
             ChecksStatus(ok, total)
